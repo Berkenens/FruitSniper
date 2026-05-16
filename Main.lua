@@ -33,7 +33,7 @@ end
 
 --=============================================================================
 local AdminusUI = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/flerci42/Adminus_FruitSniper_V2/refs/heads/main/GraphicalUserInterface.lua"
+    "https://raw.githubusercontent.com/Berkenens/whitelist/refs/heads/main/Ui.lua"
 ))()
 
 local Players = game:GetService("Players")
@@ -76,7 +76,7 @@ end
 
 local function ServerHop()
     local success, hop = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/flerci42/Server-Hop/refs/heads/main/.lua"))()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/Berkenens/whitelist/refs/heads/main/Svhop.lua"))()
     end)
     
     if success and hop then
