@@ -2,26 +2,18 @@ local AdminusUI = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/flerci42/Adminus_FruitSniper_V2/refs/heads/main/GraphicalUserInterface.lua"
 ))()
 
-local SETTINGS = _G.FruitSniperSettings = {
-    Team = "Pirates", 
-
-    Fruits = {
-        -- İstediğin fruitler = true
-        ["Dragon Fruit"]   = true,
-        ["Dough Fruit"]    = true,
-        ["Kitsune Fruit"]  = true,
-        ["Venom Fruit"]    = true,
-        ["Control Fruit"]  = true,
-        ["Spirit Fruit"]   = true,
-        ["Tiger Fruit"]   = true,
-        
-
-        -- İstemediğin fruitler ya hiç yazılmaz
-        -- ya da açıkça false yapılır:
-        ["Rocket Fruit"]   = false,
-        ["Spin Fruit"]     = false,
-    }
+local SETTINGS = _G.FruitSniperSettings or {
+    Team = "Pirates",
+    Fruits = {"Rocket Fruit","Spin Fruit","Blade Fruit","Spring Fruit","Bomb Fruit",
+    "Smoke Fruit","Spike Fruit","Flame Fruit","Ice Fruit","Sand Fruit",
+    "Dark Fruit","Eagle Fruit","Diamond Fruit","Light Fruit","Rubber Fruit",
+    "Ghost Fruit","Magma Fruit","Quake Fruit","Buddah Fruit","Love Fruit",
+    "Creation Fruit","Spider Fruit","Sound Fruit","Pheonix Fruit","Portal Fruit",
+	"Lightning Fruit","Pain Fruit","Blizzard Fruit","Gravity Fruit","Mammoth Fruit",
+	"T-Rex Fruit","Dough Fruit","Shadow Fruit","Venom Fruit","Gas Fruit","Spirit Fruit",
+	"Tiger Fruit","Yeti Fruit","Kitsune Fruit","Control Fruit","Dragon Fruit"}
 }
+
 local TEAM = SETTINGS.Team
 
 local args = {
