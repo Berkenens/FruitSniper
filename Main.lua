@@ -1,88 +1,73 @@
 --=============================================================================
-  Config
---=============================================================================
-local HedefMeyveler = {
-    "Kitsune", 
-    "Dragon", 
-    "Control", 
-    "Venom", 
-    "Yeti", 
-    "Dough", 
-    "Gas", 
-    "Lightning", 
-    "Tiger", 
-    "T-Rex"
-}
-local SeciliTakim = "Pirates" -- "Pirates" or "Marines"
-
+-- ADMINUS FRUIT SNIPER - MAIN ORCHESTRATOR
 --=============================================================================
 
---=============================================================================
-_G.FruitSniperSettings = {
-    Team = SeciliTakim,
-    Fruits = {}
-}
-
-
-for _, meyveAdi in ipairs(HedefMeyveler) do
-    local tamIsim = string.find(meyveAdi, "Fruit") and meyveAdi or (meyveAdi .. " Fruit")
-    _G.FruitSniperSettings.Fruits[tamIsim] = true
-end
-
---=============================================================================
-
---=============================================================================
+-- 1. KULLANICI ARAYÜZÜNÜ (UI) İNTERNETTEN ÇEKME
 local AdminusUI = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/Berkenens/whitelist/refs/heads/main/Ui.lua"
+    "https://raw.githubusercontent.com/flerci42/Adminus_FruitSniper_V2/refs/heads/main/GraphicalUserInterface.lua"
 ))()
 
+-- 2. AYARLAR VE HEDEF MEYVELER (Kullanıcı Ayarları)
+local SETTINGS = _G.FruitSniperSettings or {
+    Team = "Pirates",
+    Fruits = {
+        ["Kitsune Fruit"] = true,
+        ["Dragon Fruit"] = true,
+        ["Dough Fruit"] = true,
+        ["Leopard Fruit"] = true, -- Ekstra değerli meyveler eklenebilir
+    }
+}
+
+-- 3. OTOMATİK TAKIM SEÇME (Oyun Başlangıç Kilidini Kırma)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 10)
+local CommF = Remotes and Remotes:WaitForChild("CommF_", 10)
+
+if CommF then
+    pcall(function()
+        CommF:InvokeServer("SetTeam", SETTINGS.Team)
+    end)
+end
+
+-- 4. GEREKLİ ROBLOX SERVİSLERİ VE DEĞİŞKENLER
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
-local HRP = Character:WaitForChild("HumanoidRootPart")
+local HRP = Character:WaitForChild("HumanoidRootPart", 10)
 
-local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+-- UI Element Köprüleri (Çökme hatası veren 'self' yapıları düzeltildi)
+local Status = AdminusUI.Status
+local TweenStatus = AdminusUI.TweenStatus
+local StoreStatus = AdminusUI.StoringStatus
+local FruitType = AdminusUI.FruitType
+local DistanceText = AdminusUI.FruitDistance
 
-
-local Status = (self and self.Status) or AdminusUI.Status or {Text = ""}
-local TweenStatus = (self and self.TweenStatus) or AdminusUI.TweenStatus or {Text = ""}
-local StoreStatus = (self and self.StoringStatus) or AdminusUI.StoringStatus or {Text = ""}
-local FruitType = (self and self.FruitType) or AdminusUI.FruitType or {Text = ""}
-local DistanceText = (self and self.FruitDistance) or AdminusUI.FruitDistance or {Text = ""}
-
+-- Sniper Hız ve ESP Ayarları
 local TWEEN_SPEED = 250
 local ENABLE_ESP = true
 
---=============================================================================
-
---=============================================================================
-local args = {
-    [1] = "SetTeam",
-    [2] = _G.FruitSniperSettings.Team
-}
-CommF:InvokeServer(unpack(args))
-
---=============================================================================
-
---=============================================================================
+-- 5. YARDIMCI FONKSİYONLAR
 local function IsAllowedFruit(fruitName)
-    return _G.FruitSniperSettings.Fruits[fruitName] == true
+    -- Eğer _G tablosu boşsa veya tüm meyveler toplansın isteniyorsa koruma
+    if not next(SETTINGS.Fruits) then return true end 
+    return SETTINGS.Fruits[fruitName] == true
 end
 
 local function ServerHop()
+    -- Hafıza hatası düzeltilmiş yeni ServerHop modülünü çağırıyoruz
     local success, hop = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/Berkenens/whitelist/refs/heads/main/Svhop.lua"))()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/flerci42/Server-Hop/refs/heads/main/.lua"))()
     end)
     
     if success and hop then
         hop:Teleport(game.PlaceId)
     else
-        warn("Server Hop scripti yüklenemedi!")
+        warn("[ADMINUS] - Server Hop linki yuklenemedi, yerel deneme yapiliyor.")
+        -- Alternatif yedek hop mantığı (Link çökme ihtimaline karşı)
+        game:GetService("TeleportService"):Teleport(game.PlaceId, Player)
     end
 end
 
@@ -111,8 +96,10 @@ local function GetBestFruit(fruits)
     return nil
 end
 
+-- ESP SİSTEMİ (Meyvelerin Yerini İşaretler)
 local function CreateESP(fruit)
-    if not ENABLE_ESP or fruit:FindFirstChild("FruitESP") then return end
+    if not ENABLE_ESP then return end
+    if fruit:FindFirstChild("FruitESP") or not fruit:FindFirstChild("Handle") then return end
 
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "FruitESP"
@@ -124,99 +111,112 @@ local function CreateESP(fruit)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.fromRGB(255, 100, 255)
-    label.TextStrokeTransparency = 0.5 
+    label.TextStrokeTransparency = 0
     label.TextScaled = true
     label.Font = Enum.Font.GothamBold
     label.Text = fruit.Name
     label.Parent = billboard
 end
 
+-- Gelişmiş Uçma (Tween) Fonksiyonu
 local function TweenTo(position)
-   
+    if not HRP then return end
     local distance = (HRP.Position - position).Magnitude
     local time = distance / TWEEN_SPEED
-
-    
-    local safePosition = position + Vector3.new(0, 3, 0)
 
     local tween = TweenService:Create(
         HRP,
         TweenInfo.new(time, Enum.EasingStyle.Linear),
-        {CFrame = CFrame.new(safePosition)}
+        {CFrame = CFrame.new(position)}
     )
     
-    DistanceText.Text = 'Fruit Distance: <font color="rgb(255,255,255)">'..math.floor(distance)..'</font>'
-    TweenStatus.Text = 'Tweening Status: <font color="rgb(0,170,255)">Tweening...</font>'
+    DistanceText.Text = 'Fruit Distance: <font color="rgb(255,255,255)" weight="Regular">' .. math.floor(distance) .. '</font>'
+    TweenStatus.Text = 'Tweening Status: <font color="rgb(0,170,255)" weight="Regular">Tweening...</font>'
     
-    
-    local noclipConnection
-    noclipConnection = RunService.Stepped:Connect(function()
-        for _, part in ipairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end)
-
     tween:Play()
     tween.Completed:Wait()
     
-    noclipConnection:Disconnect() 
-    TweenStatus.Text = 'Tweening Status: <font color="rgb(0,255,0)">Tweening done</font>'
+    TweenStatus.Text = 'Tweening Status: <font color="rgb(0,255,0)" weight="Regular">Tweening done</font>'
 end
 
+-- Meyveyi Depolama (Envantere Atma)
 local function StoreFruit(fruit)
+    if not CommF then return end
+    
+    StoreStatus.Text = 'Storing Status: <font color="rgb(255,255,0)" weight="Regular">Storing...</font>'
+    
     local success, err = pcall(function()
         CommF:InvokeServer(
             "StoreFruit",
-            fruit:GetAttribute("OriginalName") or fruit.Name, 
+            fruit:GetAttribute("OriginalName") or fruit.Name,
             fruit
         )
     end)
 
-    if not success then
-        StoreStatus.Text = 'Storing Status: <font color="rgb(255,255,0)">Failed storing fruit... </font>'..err
+    if success then
+        StoreStatus.Text = 'Storing Status: <font color="rgb(0,255,0)" weight="Regular">Fruit Stored</font>'
+    else
+        StoreStatus.Text = 'Storing Status: <font color="rgb(255,0,0)" weight="Regular">Failed: </font>' .. tostring(err)
     end
 end
 
---=============================================================================
-
---=============================================================================
+-- 6. ANA DÖNGÜ (Sistem Motoru)
 local function Main()
-    Status.Text = 'Status: <font color="rgb(255,255,0)">Searching fruit...</font>'
+    -- Karakter koruması (Doğduğundan emin oluyoruz)
+    if not HRP or not Character:Parent() then
+        Character = Player.Character or Player.CharacterAdded:Wait()
+        HRP = Character:WaitForChild("HumanoidRootPart", 10)
+    end
+
+    Status.Text = 'Status: <font color="rgb(255,255,0)" weight="Regular">Searching fruit...</font>'
+    task.wait(1)
 
     local fruits = GetAllFruits()
 
+    -- Sunucuda hiç meyve yoksa direkt server hop at
     if #fruits == 0 then
-        Status.Text = 'Status: <font color="rgb(255,0,0)">No fruit found, server hopping...</font>'
+        Status.Text = 'Status: <font color="rgb(255,0,0)" weight="Regular">No fruit found, server hopping...</font>'
         task.wait(1.5)
         ServerHop()
         return
     end
 
+    -- Meyvelere ESP bas
     for _, fruit in ipairs(fruits) do
         CreateESP(fruit)
     end
 
+    -- Ayarlarda izin verdiğin en iyi meyveyi seç
     local target = GetBestFruit(fruits)
 
+    -- İzin verilen meyvelerden biri yoksa server hop at
     if not target then
-        Status.Text = 'Status: <font color="rgb(255,0,0)">No allowed fruits found, server hopping...</font>'
+        Status.Text = 'Status: <font color="rgb(255,0,0)" weight="Regular">No allowed fruits found, server hopping...</font>'
         task.wait(1.5)
         ServerHop()
         return
     end
 
-    Status.Text = 'Status: <font color="rgb(0,255,0)">Fruit found</font>'
-    FruitType.Text = 'Fruit Type: <font color="rgb(0,255,0)">'..target.Name..'</font>'
+    -- Meyveye kilitlen ve operasyonu başlat
+    Status.Text = 'Status: <font color="rgb(0,255,0)" weight="Regular">Fruit found</font>'
+    FruitType.Text = 'Fruit Type: <font color="rgb(0,255,0)" weight="Regular">' .. target.Name .. '</font>'
 
+    -- Meyveye uç, ye/al ve envantere yükle
     TweenTo(target.Handle.Position)
-    task.wait(0.5) 
-    StoreFruit(target)
-    StoreStatus.Text = 'Storing Status: <font color="rgb(0,255,0)">Fruit Stored</font>'
+    task.wait(0.5)
     
-    task.wait(1.5)
+    -- Meyveyi yerden alabilmek için karaktere equip etme simülasyonu (Güvenlik Önlemi)
+    pcall(function()
+        Player.Character.Humanoid:EquipTool(target)
+    end)
+    task.wait(0.5)
+
+    StoreFruit(target)
+    task.wait(2)
+    
+    -- İşlem bitti, yeni sunucuya geç
     ServerHop()
 end
 
-Main()
+-- Sistemi tetikle
+task.spawn(Main)
