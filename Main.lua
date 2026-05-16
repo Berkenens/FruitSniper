@@ -4,14 +4,7 @@ local AdminusUI = loadstring(game:HttpGet(
 
 local SETTINGS = _G.FruitSniperSettings or {
     Team = "Pirates",
-    Fruits = {"Rocket Fruit","Spin Fruit","Blade Fruit","Spring Fruit","Bomb Fruit",
-    "Smoke Fruit","Spike Fruit","Flame Fruit","Ice Fruit","Sand Fruit",
-    "Dark Fruit","Eagle Fruit","Diamond Fruit","Light Fruit","Rubber Fruit",
-    "Ghost Fruit","Magma Fruit","Quake Fruit","Buddah Fruit","Love Fruit",
-    "Creation Fruit","Spider Fruit","Sound Fruit","Pheonix Fruit","Portal Fruit",
-	"Lightning Fruit","Pain Fruit","Blizzard Fruit","Gravity Fruit","Mammoth Fruit",
-	"T-Rex Fruit","Dough Fruit","Shadow Fruit","Venom Fruit","Gas Fruit","Spirit Fruit",
-	"Tiger Fruit","Yeti Fruit","Kitsune Fruit","Control Fruit","Dragon Fruit"}
+    Fruits = {"Magma Fruit"}
 }
 
 local TEAM = SETTINGS.Team
