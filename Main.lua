@@ -4,7 +4,7 @@
 
 -- 1. KULLANICI ARAYÜZÜNÜ (UI) İNTERNETTEN ÇEKME
 local AdminusUI = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/flerci42/Adminus_FruitSniper_V2/refs/heads/main/GraphicalUserInterface.lua"
+    "https://raw.githubusercontent.com/Berkenens/whitelist/refs/heads/main/Ui.lua"
 ))()
 
 -- 2. AYARLAR VE HEDEF MEYVELER (Kullanıcı Ayarları)
@@ -59,7 +59,7 @@ end
 local function ServerHop()
     -- Hafıza hatası düzeltilmiş yeni ServerHop modülünü çağırıyoruz
     local success, hop = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/flerci42/Server-Hop/refs/heads/main/.lua"))()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/Berkenens/whitelist/refs/heads/main/Svhop.lua"))()
     end)
     
     if success and hop then
