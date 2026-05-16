@@ -1,51 +1,42 @@
---=============================================================================
-
---=============================================================================
+-- ServerHop Module (Optimized)
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
-
 local module = {}
 
-
+-- State
 local visitedServers = {}
 local cursor = nil
 local hopping = false
 local currentPlaceId = nil
+local teleportPending = false
 
+-- Config
+local REQUEST_DELAY    = 1.5
+local TELEPORT_DELAY   = 3
+local REFRESH_INTERVAL = 15
+local lastRefresh      = 0
 
-local REQUEST_DELAY = 1.5   
-local TELEPORT_DELAY = 2.5  
-local REFRESH_INTERVAL = 300 
-
-local lastRefresh = os.clock()
-
-
+-- Safe JSON decode
 local function safeJSONDecode(str)
-    local success, result = pcall(HttpService.JSONDecode, HttpService, str)
-    if success then
-        return result
-    else
-        warn("[ADMINUS] - JSON decode basarisiz.")
-        return nil
-    end
+    local ok, result = pcall(HttpService.JSONDecode, HttpService, str)
+    if ok then return result end
+    warn("[SNIPER] JSON decode hatasi")
+    return nil
 end
 
-
+-- Sunucu listesini cek
 local function getServers(placeId)
-    local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
-    if cursor then
+    local url = ("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100"):format(placeId)
+    if cursor and cursor ~= "" then
         url = url .. "&cursor=" .. cursor
     end
 
-    local success, response = pcall(function()
-        return game:HttpGet(url)
-    end)
-
-    if not success or not response then
-        warn("[ADMINUS] - Sunucu listesi API'den cekilemedi.")
+    local ok, response = pcall(game.HttpGet, game, url)
+    if not ok or not response then
+        warn("[SNIPER] HTTP istegi basarisiz")
         task.wait(REQUEST_DELAY)
         return nil
     end
@@ -53,83 +44,98 @@ local function getServers(placeId)
     return safeJSONDecode(response)
 end
 
-
-local function hop(placeId)
-    if hopping then
-        print("[ADMINUS] - Zaten isinlanma sirasindasiniz, tekrar tetikleme engellendi.")
-        return
-    end
-
-    hopping = true
-    currentPlaceId = placeId
-
-
-    if game.JobId and game.JobId ~= "" then
-        visitedServers[game.JobId] = true
-    end
+-- Asil hop dongusu
+local function hopLoop(placeId)
+    hopping      = true
+    teleportPending = false
+    currentPlaceId  = placeId
 
     while hopping do
         task.wait(REQUEST_DELAY)
 
-       
-        if os.clock() - lastRefresh > REFRESH_INTERVAL then
-            cursor = nil
+        -- Belirli aralikta cache temizle
+        if tick() - lastRefresh > REFRESH_INTERVAL then
+            cursor        = nil
             visitedServers = {}
-            lastRefresh = os.clock()
-            print("[ADMINUS] - Sunucu hafizasi temizlendi.")
+            lastRefresh   = tick()
+            print("[SNIPER] Sunucu listesi yenilendi")
         end
 
         local data = getServers(placeId)
         if not data or not data.data then continue end
 
-        cursor = data.nextPageCursor
+        cursor = data.nextPageCursor or ""
 
         for _, server in ipairs(data.data) do
-            
-            if server.playing and server.maxPlayers and server.playing < server.maxPlayers and not server.accessCode then
-                local id = server.id
+            -- Dolu olmayan, ozel olmayan, ziyaret edilmemis sunucuyu sec
+            if  server.playing < server.maxPlayers
+            and not server.accessCode
+            and not visitedServers[server.id]
+            then
+                visitedServers[server.id] = true
+                print("[SNIPER] Sunucuya atlanıyor:", server.id)
 
-                if not visitedServers[id] then
-                    visitedServers[id] = true
-                    print("[ADMINUS] - Yeni sunucuya gidiliyor: ", id)
+                teleportPending = true
+                local ok = pcall(
+                    TeleportService.TeleportToPlaceInstance,
+                    TeleportService, placeId, server.id, player
+                )
 
-                    local success = pcall(function()
-                        TeleportService:TeleportToPlaceInstance(placeId, id, player)
-                    end)
-
-                    if success then
+                if ok then
+                    -- Teleport istegi gonderildi, confirm bekle
+                    task.wait(TELEPORT_DELAY)
+                    if teleportPending then
+                        -- Teleport gelmedi, devam et
+                        teleportPending = false
+                        warn("[SNIPER] Teleport yanitlanmadi, baska sunucu deneniyor")
+                    else
                         hopping = false
                         return
                     end
-
+                else
+                    teleportPending = false
+                    warn("[SNIPER] TeleportToPlaceInstance cagrisi basarisiz")
                     task.wait(TELEPORT_DELAY)
                 end
             end
         end
 
-       
-        if not cursor then
-            cursor = nil
+        -- Tüm sayfa bitti, cursor yoksa bastan baslat
+        if cursor == "" or cursor == nil then
+            cursor        = nil
+            visitedServers = {}
+            print("[SNIPER] Tüm sunucular denendi, bastan baslanıyor")
         end
     end
 end
 
-
+-- Teleport basari olayi
 TeleportService.TeleportInitFailed:Connect(function(plr, result)
     if plr ~= player then return end
+    warn("[SNIPER] Teleport basarisiz:", result.Name)
+    teleportPending = false
 
-    warn("[ADMINUS] - Isinlanma hatasi: ", tostring(result))
-
-    if currentPlaceId then
-        hopping = false
+    if currentPlaceId and hopping then
         task.wait(2)
-        module.Teleport(module, currentPlaceId) 
+        -- Zaten dongu devam ediyor, mudahale etme
     end
 end)
 
-
+-- Public API
 function module:Teleport(placeId)
-    hop(placeId)
+    if hopping then
+        warn("[SNIPER] Zaten sunucu atlaniyor")
+        return
+    end
+    task.spawn(hopLoop, placeId)
+end
+
+function module:Stop()
+    hopping = false
+    currentPlaceId = nil
+    cursor = nil
+    visitedServers = {}
+    print("[SNIPER] ServerHop durduruldu")
 end
 
 return module
