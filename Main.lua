@@ -2,4 +2,4 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
 
 CommF:InvokeServer("SetTeam", "Pirates")
-print("Takim secildi: Pirates")
+print("team : Pirates")
