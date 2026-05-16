@@ -4,7 +4,7 @@ local AdminusUI = loadstring(game:HttpGet(
 
 local SETTINGS = _G.FruitSniperSettings or {
     Team = "Pirates",
-    Fruits = {Magma Fruit}
+    Fruits = { ["Magma Fruit"]   = true,}
 }
 
 local TEAM = SETTINGS.Team
