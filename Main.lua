@@ -1,5 +1,5 @@
 local AdminusUI = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/flerci42/Adminus_FruitSniper_V2/refs/heads/main/GraphicalUserInterface.lua"
+    "https://raw.githubusercontent.com/Berkenens/whitelist/refs/heads/main/Ui.lua"
 ))()
 
 local SETTINGS = _G.FruitSniperSettings or {
